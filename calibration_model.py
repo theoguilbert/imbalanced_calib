@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 # Local imports
-from tools import cap_proba, adjust_posterior_prob_to_new_prior, get_inc_poly, get_inc_poly_bounded
+from tools_and_calib_metrics import cap_proba, adjust_posterior_prob_to_new_prior, get_inc_poly, get_inc_poly_bounded
 
 
 class Classifier(): 

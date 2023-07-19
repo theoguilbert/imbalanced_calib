@@ -6,8 +6,8 @@ import scipy.stats as st
 import random
 import os
 
-from model import ClassifierCalibrated
-from tools import return_calibration_metrics_top
+from calibration_model import ClassifierCalibrated
+from tools_and_calib_metrics import return_calibration_metrics_top
 
 
 def evaluate_calibration_for_all_metrics_topk_giving_one_dataset(X, y, method_list=['isotonic'], test_size=0.2, val_size_for_calibration=0.4, number_of_different_training=5, nb_bins=15):

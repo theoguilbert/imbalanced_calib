@@ -2,7 +2,7 @@
 
 Data and code for reproducibility of experiments of the "Calibration Methods in Imbalanced Binary Classification" paper.
 
-To run experiments, please first install the given requirements via the pip install -r requirements.txt command. Then you can run the **calibration_analysis_clean** Jupyther Notebook.
+To run experiments, please first install the given requirements via the pip install -r requirements.txt command. Then you can run the **calibration_analysis** Jupyther Notebook.
 
 Here is the description of the folders and files:
 * Data used for experiments are in the **data** folder.

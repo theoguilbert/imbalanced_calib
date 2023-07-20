@@ -5,7 +5,7 @@ Data and code for reproducibility of experiments of the "Calibration Methods in 
 To run experiments, please first install the given requirements via the pip install -r requirements.txt command. Then you can run the **calibration_analysis** Jupyther Notebook.
 
 Here is the description of the folders and files:
-* Data used for experiments are in the **data** folder.
+* Data used for experiments are in the **datas** folder.
 * The results of experiments presented in the paper are available in the **results_RF** folder.
 * **calibration_analysis**: Main file (Jupyter Notebook) that has been used to generate the experiments. It can be used to generate new results for fair reproducibility.
 * **calibration_evaluation**: In this file, you can find functions to generate, extract and retrieve calibration results.

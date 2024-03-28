@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
 import matplotlib.pyplot as plt
 import scipy.stats as st
 import random
 import os
 
-from calibration_model import ClassifierCalibrated
+from calibration_model import ClassifierCalibrated, Classifier
 from tools_and_calib_metrics import return_calibration_metrics_top
 
 
@@ -47,25 +48,36 @@ def evaluate_calibration_for_all_metrics_topk_giving_one_dataset(X, y, method_li
         pred_proba_uncalibrated = model.predict_proba(X_test)
         preds_uncalibrated_val = model.predict_proba(model.X_val_for_calibration)
 
+        model_bis = ClassifierCalibrated()
+        model_bis.set_training_data(X_test, y_test)
+        model_bis.fit_RF_and_let_val_set(calibration_size=val_size_for_calibration)
+        pred_proba_uncalibrated_bis = model_bis.predict_proba(X_train)
+        preds_uncalibrated_val_bis = model_bis.predict_proba(model_bis.X_val_for_calibration)
+
         for method in method_list: 
             model.set_method_to_calibrate(method)
+            model_bis.set_method_to_calibrate(method)
             
             pred_proba = model.predict_proba_calibrated(X_test, pred_proba_uncalibrated, preds_uncalibrated_val)
             calibration_measures_test = return_calibration_metrics_top(y_test, pred_proba, nb_bins, pred_proba_uncalibrated)
+            pred_proba_bis = model_bis.predict_proba_calibrated(X_train, pred_proba_uncalibrated_bis, preds_uncalibrated_val_bis)
+            calibration_measures_test_bis = return_calibration_metrics_top(y_train, pred_proba_bis, nb_bins, pred_proba_uncalibrated_bis)
+            
 
             for metric_num, metric in enumerate(metrics):
                 if metric not in ["ECE", "ECE_weight_adj_violent", "ECE_weight_adj_soft", "ECE_weight_adj_semi", "ECE_weight_entropy", "ACE"]:
                     if method not in calib_errors_all_metric[metric]:
                         calibration_measures_test[metric_num].columns = [i] # i = 1 here / to initialize for the first iteration
-                        calib_errors_all_metric[metric][method] = calibration_measures_test[metric_num]
+                        calibration_measures_test_bis[metric_num].columns = [i] # i = 1 here / to initialize for the first iteration
+                        calib_errors_all_metric[metric][method] = (calibration_measures_test[metric_num] + calibration_measures_test_bis[metric_num])/2
                     else:
-                        calib_errors_all_metric[metric][method][i] = calibration_measures_test[metric_num]["error"]
+                        calib_errors_all_metric[metric][method][i] = (calibration_measures_test[metric_num]["error"] + calibration_measures_test_bis[metric_num]["error"])/2
                         
                 else:
                     if method not in calib_errors_all_metric[metric]:
-                        calib_errors_all_metric[metric][method] = pd.Series(calibration_measures_test[metric_num], index=[i]) # i = 1 here / to initialize for the first iteration
+                        calib_errors_all_metric[metric][method] = (pd.Series(calibration_measures_test[metric_num], index=[i]) + pd.Series(calibration_measures_test_bis[metric_num], index=[i]))/2 # i = 1 here / to initialize for the first iteration
                     else:
-                        calib_errors_all_metric[metric][method][i] = calibration_measures_test[metric_num]
+                        calib_errors_all_metric[metric][method][i] = (calibration_measures_test[metric_num] + calibration_measures_test_bis[metric_num])/2
 
         print(f"Calibration for the training number {i} is finished")
 
@@ -76,14 +88,14 @@ def evaluate_calibration_for_all_metrics_topk_giving_one_dataset(X, y, method_li
 def save_and_plot_graphs(calib_errors_all_metric, method_selec, method_selec_plot, name_dataset, X, y, folder_experiment):
 
     for method in method_selec:
-        data = calib_errors_all_metric["ECE_topk"][method].loc[:int(y.shape[0] * 0.3 * 0.2), :]
+        data = calib_errors_all_metric["ECE_topk"][method].loc[:int(y.shape[0] * 0.5 * 0.2), :]
         data_to_plot = data.mean(axis=1)
         data_std = data.std(axis=1, ddof=1) / np.sqrt(data.shape[0])
         confidence_interval = st.t.interval(confidence= 0.90, df= len(data)-1, loc= data_to_plot.values, scale= data_std.values)
         
         if method in method_selec_plot:
             data_to_plot.plot(label = method)
-            plt.fill_between(data_to_plot.index, confidence_interval[0], confidence_interval[1], alpha=0.1)
+            plt.fill_between(data_to_plot.index, confidence_interval[0], confidence_interval[1], alpha=0.2)
         
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.title("ECE@k")
@@ -91,7 +103,7 @@ def save_and_plot_graphs(calib_errors_all_metric, method_selec, method_selec_plo
     plt.ylabel("ECE")
     if not os.path.exists("%s/%s" % (folder_experiment, name_dataset)):
             os.makedirs("%s/%s" % (folder_experiment, name_dataset))
-    plt.savefig("%s/%s/ECE_topk_until_20perc_fig.png" % (folder_experiment, name_dataset), bbox_inches="tight")
+    plt.savefig("%s/%s/ECE_topk_until_20perc_fig.pdf" % (folder_experiment, name_dataset), bbox_inches="tight")
     plt.close()
     # plt.show()
 
@@ -103,7 +115,7 @@ def save_and_plot_graphs(calib_errors_all_metric, method_selec, method_selec_plo
         
         if method in method_selec_plot:
             data_to_plot.plot(label = method)
-            plt.fill_between(data_to_plot.index, confidence_interval[0], confidence_interval[1], alpha=0.1)
+            plt.fill_between(data_to_plot.index, confidence_interval[0], confidence_interval[1], alpha=0.2)
         
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.title("ECE@%k")
@@ -111,19 +123,19 @@ def save_and_plot_graphs(calib_errors_all_metric, method_selec, method_selec_plo
     plt.ylabel("ECE")
     if not os.path.exists("%s/%s" % (folder_experiment, name_dataset)):
             os.makedirs("%s/%s" % (folder_experiment, name_dataset))
-    plt.savefig("%s/%s/ECE_topk_perc_fig.png" % (folder_experiment, name_dataset), bbox_inches="tight")
+    plt.savefig("%s/%s/ECE_topk_perc_fig.pdf" % (folder_experiment, name_dataset), bbox_inches="tight")
     plt.close()
     # plt.show()
 
     for method in method_selec:
-        data = calib_errors_all_metric["ACE_topk"][method].loc[:int(y.shape[0] * 0.3 * 0.2), :]
+        data = calib_errors_all_metric["ACE_topk"][method].loc[:int(y.shape[0] * 0.5 * 0.2), :]
         data_to_plot = data.mean(axis=1)
         data_std = data.std(axis=1, ddof=1) / np.sqrt(data.shape[0])
         confidence_interval = st.t.interval(confidence= 0.90, df= len(data)-1, loc= data_to_plot.values, scale= data_std.values)
         
         if method in method_selec_plot:
             data_to_plot.plot(label = method)
-            plt.fill_between(data_to_plot.index, confidence_interval[0], confidence_interval[1], alpha=0.1)        
+            plt.fill_between(data_to_plot.index, confidence_interval[0], confidence_interval[1], alpha=0.2)        
         
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.title("ACE@k")
@@ -131,7 +143,7 @@ def save_and_plot_graphs(calib_errors_all_metric, method_selec, method_selec_plo
     plt.ylabel("ACE")
     if not os.path.exists("%s/%s" % (folder_experiment, name_dataset)):
             os.makedirs("%s/%s" % (folder_experiment, name_dataset))
-    plt.savefig("%s/%s/ACE_topk_until_20perc_fig.png" % (folder_experiment, name_dataset), bbox_inches="tight")
+    plt.savefig("%s/%s/ACE_topk_until_20perc_fig.pdf" % (folder_experiment, name_dataset), bbox_inches="tight")
     plt.close()
     # plt.show()
 
@@ -143,7 +155,7 @@ def save_and_plot_graphs(calib_errors_all_metric, method_selec, method_selec_plo
         
         if method in method_selec_plot:
             data_to_plot.plot(label = method)
-            plt.fill_between(data_to_plot.index, confidence_interval[0], confidence_interval[1], alpha=0.1)
+            plt.fill_between(data_to_plot.index, confidence_interval[0], confidence_interval[1], alpha=0.2)
         
     plt.legend(loc="center left", bbox_to_anchor=(1, 0.5))
     plt.title("ACE@%k")
@@ -222,3 +234,30 @@ def rank_method(error_metric_mean, columns_interest, threshold=None):
     rank_dataset = error_metric_mean.T[columns_interest].rank(axis=1)
     
     return rank_dataset, z_score_dataset
+
+
+def classifier_performance(X, y, test_size, nb_experiments):
+    roc_score_with_reb_list = []
+    roc_score_without_reb_list = []
+
+    for i in range(nb_experiments):
+        print(f"Classifier performance iteration number {i+1} is running")
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y)
+
+        rf_with_reb = Classifier()
+        rf_with_reb.set_training_data(X_train, y_train)
+        rf_with_reb.fit()
+        pred_with_reb = rf_with_reb.predict_proba(X_test)
+
+        rf_without_reb = Classifier()
+        rf_without_reb.set_training_data(X_train, y_train)
+        rf_without_reb.fit_RF_without_reb()
+        pred_without_reb = rf_without_reb.predict_proba(X_test)
+
+        roc_score_with_reb = roc_auc_score(y_test, pred_with_reb)
+        roc_score_without_reb = roc_auc_score(y_test, pred_without_reb)
+
+        roc_score_with_reb_list.append(roc_score_with_reb)
+        roc_score_without_reb_list.append(roc_score_without_reb)
+
+    return roc_score_with_reb_list, roc_score_without_reb_list

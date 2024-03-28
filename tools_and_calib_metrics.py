@@ -389,13 +389,13 @@ def write_table_latex(error_metric_mean, error_metric_std, columns_interest, wil
         for method in table_mean.index:
             pvalue = wilc_test.loc[method, dataset]
             if pvalue > 0.05: # means that not significantly different from the best method
-                metric_all_for_latex.loc[dataset.replace("%", "\%").replace("_", " "), method] = "\\underline{" + "{:.2f}".format(table_mean.loc[method, dataset]*100) + "}"
+                metric_all_for_latex.loc[dataset.replace("%", "\%").replace("_", " "), method] = "\\underline{" + "{:.2f}".format(table_mean.loc[method, dataset]*100) + "}" + "(" + "{:.2f}".format(table_std.loc[method, dataset]*100) + ")"
             
             elif np.isnan(pvalue): # means that it is the best method
-                metric_all_for_latex.loc[dataset.replace("%", "\%").replace("_", " "), method] = "\\underline{\\textbf{" + "{:.2f}".format(table_mean.loc[method, dataset]*100) + "}" + "}"
+                metric_all_for_latex.loc[dataset.replace("%", "\%").replace("_", " "), method] = "\\underline{\\textbf{" + "{:.2f}".format(table_mean.loc[method, dataset]*100) + "}" + "}" + "(" + "{:.2f}".format(table_std.loc[method, dataset]*100) + ")"
             
             else:
-                metric_all_for_latex.loc[dataset.replace("%", "\%").replace("_", " "), method] = "{:.2f}".format(table_mean.loc[method, dataset]*100)         
+                metric_all_for_latex.loc[dataset.replace("%", "\%").replace("_", " "), method] = "{:.2f}".format(table_mean.loc[method, dataset]*100) + "(" + "{:.2f}".format(table_std.loc[method, dataset]*100) + ")"      
 
     with open('table_latex.tex', 'w') as tf:
-        tf.write((metric_all_for_latex).to_latex())
+        tf.write((metric_all_for_latex.sort_index()).to_latex())

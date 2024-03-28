@@ -249,6 +249,7 @@ def california_5_perc():
 
 def credit_card_10_perc():
     creditcard_dataset = pd.concat([pd.read_csv("datas/creditcard_data1.csv").dropna(), pd.read_csv("datas/creditcard_data2.csv").dropna()], axis=0)
+    creditcard_dataset.reset_index(drop=True, inplace=True)
     X = creditcard_dataset.iloc[:, :-1]
     y = creditcard_dataset["Class"]
     y.name = "y"
@@ -262,6 +263,7 @@ def credit_card_10_perc():
 
 def credit_card_2_perc():
     creditcard_dataset = pd.concat([pd.read_csv("datas/creditcard_data1.csv").dropna(), pd.read_csv("datas/creditcard_data2.csv").dropna()], axis=0)
+    creditcard_dataset.reset_index(drop=True, inplace=True)
     X = creditcard_dataset.iloc[:, :-1]
     y = creditcard_dataset["Class"]
     y.name = "y"

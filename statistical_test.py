@@ -123,43 +123,56 @@ def regroup_all_iterations_and_datasets(calib_errors_all_metric_all_datasets, nu
     return set_calib_errors
 
 
-def nemenyi_friedman_test(set_calib_errors):
+def nemenyi_friedman_test(set_calib_errors, only_methods_selected=True):
     results_test_stats = {}
     results_test_stats_only_poly_pos = {}
     results_test_stats_only_poly_inc = {}
     results_test_stats_only_exp = {}
 
-    for error_name in set_calib_errors.keys():
-        error = set_calib_errors[error_name][["isotonic", "sigmoid", "adjust_posterior_to_source_and_sigmoid", "polynomial_pos", "polynomial_inc", "exponential"]]
-        p_value_friedman_test = st.friedmanchisquare(*[list(error[method].values) for method in error.columns if method != "not_calibrated"]).pvalue
-        nemenyi_test = sp.posthoc_nemenyi_friedman(error.to_numpy())
-        nemenyi_test.columns = error.columns
-        nemenyi_test.index = error.columns
-        
-        results_test_stats[error_name] = {"p_val_friedman":p_value_friedman_test, "p_vals_nemenyi":nemenyi_test}
-        
-        error = set_calib_errors[error_name][["polynomial_pos", "polynomial_pos_bounded", "polynomial_pos_min1", "polynomial_pos_l2"]]
-        p_value_friedman_test = st.friedmanchisquare(*[list(error[method].values) for method in error.columns if method != "not_calibrated"]).pvalue
-        nemenyi_test = sp.posthoc_nemenyi_friedman(error.to_numpy())
-        nemenyi_test.columns = error.columns
-        nemenyi_test.index = error.columns
-        
-        results_test_stats_only_poly_pos[error_name] = {"p_val_friedman":p_value_friedman_test, "p_vals_nemenyi":nemenyi_test}
-        
-        error = set_calib_errors[error_name][["polynomial_inc", "polynomial_inc_bounded", "polynomial_inc_l2"]]
-        p_value_friedman_test = st.friedmanchisquare(*[list(error[method].values) for method in error.columns if method != "not_calibrated"]).pvalue
-        nemenyi_test = sp.posthoc_nemenyi_friedman(error.to_numpy())
-        nemenyi_test.columns = error.columns
-        nemenyi_test.index = error.columns
-        
-        results_test_stats_only_poly_inc[error_name] = {"p_val_friedman":p_value_friedman_test, "p_vals_nemenyi":nemenyi_test}
+    if only_methods_selected:
+        for error_name in set_calib_errors.keys():
+            error = set_calib_errors[error_name][["isotonic", "sigmoid", "adjust_posterior_to_source_and_sigmoid", "polynomial_pos", "polynomial_inc", "exponential"]]
+            p_value_friedman_test = st.friedmanchisquare(*[list(error[method].values) for method in error.columns if method != "not_calibrated"]).pvalue
+            nemenyi_test = sp.posthoc_nemenyi_friedman(error.to_numpy())
+            nemenyi_test.columns = error.columns
+            nemenyi_test.index = error.columns
             
-        error = set_calib_errors[error_name][["exponential", "exponential_bounded", "exponential_min1"]]
-        p_value_friedman_test = st.friedmanchisquare(*[list(error[method].values) for method in error.columns if method != "not_calibrated"]).pvalue
-        nemenyi_test = sp.posthoc_nemenyi_friedman(error.to_numpy())
-        nemenyi_test.columns = error.columns
-        nemenyi_test.index = error.columns
-        
-        results_test_stats_only_exp[error_name] = {"p_val_friedman":p_value_friedman_test, "p_vals_nemenyi":nemenyi_test}
-        
-    return results_test_stats, results_test_stats_only_poly_pos, results_test_stats_only_poly_inc, results_test_stats_only_exp
+            results_test_stats[error_name] = {"p_val_friedman":p_value_friedman_test, "p_vals_nemenyi":nemenyi_test}
+
+        return results_test_stats
+    
+    else:
+        for error_name in set_calib_errors.keys():
+            error = set_calib_errors[error_name][["isotonic", "sigmoid", "adjust_posterior_to_source_and_sigmoid", "polynomial_pos", "polynomial_inc", "exponential"]]
+            p_value_friedman_test = st.friedmanchisquare(*[list(error[method].values) for method in error.columns if method != "not_calibrated"]).pvalue
+            nemenyi_test = sp.posthoc_nemenyi_friedman(error.to_numpy())
+            nemenyi_test.columns = error.columns
+            nemenyi_test.index = error.columns
+            
+            results_test_stats[error_name] = {"p_val_friedman":p_value_friedman_test, "p_vals_nemenyi":nemenyi_test}
+            
+            error = set_calib_errors[error_name][["polynomial_pos", "polynomial_pos_bounded", "polynomial_pos_min1", "polynomial_pos_l2"]]
+            p_value_friedman_test = st.friedmanchisquare(*[list(error[method].values) for method in error.columns if method != "not_calibrated"]).pvalue
+            nemenyi_test = sp.posthoc_nemenyi_friedman(error.to_numpy())
+            nemenyi_test.columns = error.columns
+            nemenyi_test.index = error.columns
+            
+            results_test_stats_only_poly_pos[error_name] = {"p_val_friedman":p_value_friedman_test, "p_vals_nemenyi":nemenyi_test}
+            
+            error = set_calib_errors[error_name][["polynomial_inc", "polynomial_inc_bounded", "polynomial_inc_l2"]]
+            p_value_friedman_test = st.friedmanchisquare(*[list(error[method].values) for method in error.columns if method != "not_calibrated"]).pvalue
+            nemenyi_test = sp.posthoc_nemenyi_friedman(error.to_numpy())
+            nemenyi_test.columns = error.columns
+            nemenyi_test.index = error.columns
+            
+            results_test_stats_only_poly_inc[error_name] = {"p_val_friedman":p_value_friedman_test, "p_vals_nemenyi":nemenyi_test}
+                
+            error = set_calib_errors[error_name][["exponential", "exponential_bounded", "exponential_min1"]]
+            p_value_friedman_test = st.friedmanchisquare(*[list(error[method].values) for method in error.columns if method != "not_calibrated"]).pvalue
+            nemenyi_test = sp.posthoc_nemenyi_friedman(error.to_numpy())
+            nemenyi_test.columns = error.columns
+            nemenyi_test.index = error.columns
+            
+            results_test_stats_only_exp[error_name] = {"p_val_friedman":p_value_friedman_test, "p_vals_nemenyi":nemenyi_test}
+            
+        return results_test_stats, results_test_stats_only_poly_pos, results_test_stats_only_poly_inc, results_test_stats_only_exp

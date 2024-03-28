@@ -47,9 +47,25 @@ class Classifier():
                                          EasyEnsembleClassifier(n_estimators = 120,
                                                                 estimator = RandomForestClassifier(), 
                                                                 sampling_strategy = 'all',
-                                                                n_jobs = 30))        
+                                                                n_jobs=-1))        
         self.ml_pipeline.fit(self.X_train, self.y_train) 
 
+
+    def fit_RF_without_reb(self):
+        """ Fit the algorithm with the train_set without rebalancing """
+        
+        if self.X_train is None:
+            raise Exception("The training set is missing --> call first: set_training_data()")
+            
+        fs_procent_ratio=0.8 ## % of variables to keep
+        fs_nb_var = int(len(self.X_train.columns)*fs_procent_ratio)
+        print(f" Feature selection: keep {fs_nb_var} variables from {len(self.X_train.columns)}")
+        
+        self.ml_pipeline = make_pipeline(StandardScaler(),
+                                         SelectKBest(mutual_info_classif, k=fs_nb_var), 
+                                         RandomForestClassifier())        
+        self.ml_pipeline.fit(self.X_train, self.y_train) 
+    
     
     def fit_SVM(self):
         """ Fit the algorithm with the train_set """
@@ -66,7 +82,7 @@ class Classifier():
                                          EasyEnsembleClassifier(n_estimators = 120,
                                                                 estimator = SVC(probability=True), 
                                                                 sampling_strategy = 'all',
-                                                                n_jobs = 30))        
+                                                                n_jobs = -1))        
         self.ml_pipeline.fit(self.X_train, self.y_train) 
 
 
@@ -202,7 +218,7 @@ class ClassifierCalibrated(Classifier):
             proba_calibrated = pd.DataFrame(self.calibration_method.predict(proba_uncalibrated), index=X.index)
 
         elif self.method == "sigmoid":
-            self.calibration_method = LogisticRegression(penalty="none")
+            self.calibration_method = LogisticRegression(penalty=None)
             self.calibration_method.fit(preds_uncalibrated_val, self.y_val_for_calibration)
             
             proba_calibrated = pd.DataFrame(self.calibration_method.predict_proba(proba_uncalibrated)[:, 1], index=X.index)            
@@ -309,7 +325,7 @@ class ClassifierCalibrated(Classifier):
             # Find a linear combination between adjusted and non-adjusted proba in order to have a reliability diagram that is the most similar as possible to a sigmoid
             all_loss = {}
             for lambdaa in np.linspace(0, 1, 21):
-                calibration_method = LogisticRegression(penalty="none")
+                calibration_method = LogisticRegression(penalty=None)
                 calibration_method.fit(preds_adjusted_val*lambdaa + preds_uncalibrated_val*(1-lambdaa), self.y_val_for_calibration)
                 
                 loss = mean_squared_error(self.y_val_for_calibration, calibration_method.predict_proba(np.array(preds_adjusted_val*lambdaa + preds_uncalibrated_val*(1-lambdaa)).reshape(-1, 1))[:, 1])
@@ -318,7 +334,7 @@ class ClassifierCalibrated(Classifier):
             self.lambdaa = min(all_loss.keys(), key= lambda key:all_loss[key])
             
             proba_adj = adjust_posterior_prob_to_new_prior(self.beta, proba_uncalibrated)
-            self.calibration_method = LogisticRegression(penalty="none")
+            self.calibration_method = LogisticRegression(penalty=None)
             self.calibration_method.fit(preds_adjusted_val*self.lambdaa + preds_uncalibrated_val*(1-self.lambdaa), self.y_val_for_calibration)            
 
             proba_calibrated = pd.DataFrame(self.calibration_method.predict_proba(proba_adj*self.lambdaa + proba_uncalibrated*(1-self.lambdaa))[:, 1], index=X.index)
